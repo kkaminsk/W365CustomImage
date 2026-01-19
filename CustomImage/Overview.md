@@ -58,7 +58,7 @@ This solution automates the creation of custom Windows 11 managed images for Win
 
 ### 🔄 Fully Automated Workflow
 1. **Deploy** - Gen 2 Windows 11 VM with CPC image
-2. **Customize** - Install apps via Chocolatey (VSCode, Chrome, 7-Zip, Adobe Reader)
+2. **Customize** - Install apps via Winget (VSCode, Chrome, 7-Zip, Adobe Reader) and Microsoft 365 Apps via Chocolatey
 3. **Configure** - Apply Windows optimizations and settings
 4. **Sysprep** - Windows 365-compliant generalization
 5. **Capture** - Create Gen 2 managed image
@@ -250,7 +250,7 @@ This solution is designed for the **TechMentor Orlando 2025 Windows 365 Lab**. F
 
 ---
 
-**Solution Version**: 1.0  
-**Last Updated**: November 2025  
-**Target Platform**: Windows 365 Enterprise  
+**Solution Version**: 2.1
+**Last Updated**: January 2026
+**Target Platform**: Windows 365 Enterprise
 **Azure Region**: South Central US (default)

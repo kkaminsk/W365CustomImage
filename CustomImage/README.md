@@ -21,7 +21,7 @@ This single command:
 - ✅ Installs required Azure PowerShell modules
 - ✅ Authenticates to Azure
 - ✅ Deploys Gen 2 Windows 11 VM (win11-25h2-ent-cpc)
-- ✅ Installs applications via Chocolatey (VSCode, 7-Zip, Chrome, Adobe Reader)
+- ✅ Installs applications via Winget (VSCode, 7-Zip, Chrome, Adobe Reader)
 - ✅ Configures Windows settings and optimizations
 - ✅ Runs sysprep with Windows 365-compliant parameters
 - ✅ Captures as managed image (Gen 2)
@@ -101,8 +101,8 @@ The script automates the entire process:
 1. **Deploy Infrastructure** - VNet, NSG, Managed Identity
 2. **Deploy Build VM** - Gen 2 Windows 11 25H2 Enterprise CPC (Standard_D4s_v3)
 3. **Execute Customization** - Run script via Azure Run Command:
-   - Install Chocolatey
-   - Install applications (VSCode, 7-Zip, Chrome, Adobe Reader)
+   - Install applications via Winget (VSCode, 7-Zip, Chrome, Adobe Reader)
+   - Install Microsoft 365 Apps via Chocolatey (Word, Excel, PowerPoint, Outlook, OneNote, Teams)
    - Configure Windows settings (timezone, Explorer, disable tips)
    - Run Windows Update
    - Optimize and cleanup
@@ -364,8 +364,13 @@ Managed images are region-specific. To deploy in multiple regions:
 - **Cause**: Role assignment not propagated
 - **Fix**: Wait 60 seconds and try again
 
-### Chocolatey Package Installation Fails
+### Winget Package Installation Fails
 - **Cause**: Package not found or network issue
+- **Fix**: Verify package ID using `winget search <app-name>`
+- **Fix**: Check build VM has internet connectivity
+
+### Chocolatey/M365 Apps Installation Fails
+- **Cause**: Chocolatey package not found or network issue
 - **Fix**: Verify package name at https://community.chocolatey.org/packages
 - **Fix**: Check build VM has internet connectivity
 
@@ -410,7 +415,8 @@ Get-AzImage -ResourceGroupName 'rg-w365-customimage' | Select-Object Name, Provi
 
 - [Azure Managed Images Documentation](https://learn.microsoft.com/azure/virtual-machines/capture-image-resource)
 - [Windows 365 Custom Images](https://learn.microsoft.com/windows-365/enterprise/custom-image)
-- [Chocolatey Package Repository](https://community.chocolatey.org/packages)
+- [Winget Package Search](https://winget.run/)
+- [Chocolatey Package Repository](https://community.chocolatey.org/packages) (for M365 Apps)
 - [Windows 11 Enterprise Images](https://learn.microsoft.com/azure/virtual-machines/windows/windows-desktop-images)
 
 ## 🤝 Contributing

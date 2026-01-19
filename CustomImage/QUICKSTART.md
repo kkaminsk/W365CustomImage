@@ -9,7 +9,7 @@ A complete automated solution for creating Windows 365 custom images with **just
 | File | Purpose |
 |------|----------|
 | **Deploy-W365CustomImage.ps1** | Main orchestration script |
-| **Invoke-W365ImageCustomization.ps1** | VM customization with Chocolatey |
+| **Invoke-W365ImageCustomization.ps1** | VM customization with Winget & Chocolatey |
 | **Invoke-W365Sysprep.ps1** | Sysprep automation |
 | **customimage.bicep** | Infrastructure (Gen 2 VM) |
 | **check-W365permissions.ps1** | Permissions validator |
@@ -48,7 +48,8 @@ cd "C:\Users\KevinKaminski\OneDrive - Big Hat Group Inc\Documents\GitHub\Techmen
 - ✅ Connect to Azure
 - ✅ Register resource providers
 - ✅ Deploy Gen 2 Windows 11 VM (win11-25h2-ent-cpc)
-- ✅ Install Chocolatey and applications
+- ✅ Install applications via Winget (VSCode, 7-Zip, Chrome, Adobe Reader)
+- ✅ Install Microsoft 365 Apps via Chocolatey (Word, Excel, PowerPoint, Outlook, OneNote, Teams)
 - ✅ Configure Windows settings
 - ✅ Run Windows Update
 - ✅ Execute sysprep (/generalize /oobe /shutdown)
@@ -89,11 +90,16 @@ Once build completes:
 - Single-session OS (not multi-session)
 - Generation 2 Hyper-V
 
-### Pre-installed Applications (via Chocolatey)
+### Pre-installed Applications (via Winget)
 - ✅ Visual Studio Code
 - ✅ 7-Zip
 - ✅ Google Chrome
 - ✅ Adobe Acrobat Reader
+
+### Microsoft 365 Apps (via Chocolatey)
+- ✅ Word, Excel, PowerPoint
+- ✅ Outlook, OneNote, Teams
+- ✅ 64-bit, Current Channel
 
 ### Windows Configuration
 - ✅ Eastern timezone
@@ -128,11 +134,11 @@ Deploy to different region or resource group:
 ## Need to Customize?
 
 ### Add More Applications
-Edit `Invoke-W365ImageCustomization.ps1` → Find `$packages` array → Add Chocolatey packages:
+Edit `Invoke-W365ImageCustomization.ps1` → Find `$packages` array → Add Winget packages:
 ```powershell
-@{ Name = 'notepadplusplus'; DisplayName = 'Notepad++' }
+@{ Id = 'Notepad++.Notepad++'; DisplayName = 'Notepad++' }
 ```
-Find packages at: https://community.chocolatey.org/packages
+Find Winget packages using: `winget search <app-name>` or https://winget.run/
 
 ### Change Settings
 Edit `Invoke-W365ImageCustomization.ps1` → Stage 3 section → Add PowerShell commands

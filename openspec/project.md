@@ -4,7 +4,8 @@
 Automated deployment solution for Windows 365 custom images using Azure Managed Images (Gen 2). Designed for **multi-student training labs** (e.g., TechMentor Orlando 2025) where each student builds and tests their own custom images in isolated environments. The solution:
 
 - Deploys a Gen 2 Windows 11 VM with Cloud PC-optimized image
-- Installs applications via Chocolatey (VSCode, Chrome, 7-Zip, Adobe Reader)
+- Installs applications via Winget (VSCode, Chrome, 7-Zip, Adobe Reader)
+- Installs Microsoft 365 Apps via Chocolatey (Word, Excel, PowerPoint, Outlook, OneNote, Teams)
 - Configures Windows settings and optimizations
 - Runs Windows 365-compliant sysprep
 - Captures the VM as a managed image for Cloud PC provisioning
@@ -14,7 +15,8 @@ Automated deployment solution for Windows 365 custom images using Azure Managed 
 - **PowerShell 5.1+** (PowerShell 7+ recommended) - Main scripting language
 - **Azure Bicep** - Infrastructure as Code templates
 - **Azure PowerShell Modules** - Az.Accounts, Az.Resources, Az.Compute, Az.Network, Az.ManagedServiceIdentity
-- **Chocolatey** - Windows package manager for application installation
+- **Winget** - Microsoft's native Windows package manager for common applications (pre-installed on Windows 11)
+- **Chocolatey** - Windows package manager for Microsoft 365 Apps (via Office Deployment Tool)
 - **Azure Resource Manager (ARM)** - Resource deployment
 - **PSWindowsUpdate** - Windows Update automation module
 
@@ -69,7 +71,8 @@ Automated deployment solution for Windows 365 custom images using Azure Managed 
 
 ## External Dependencies
 - **Azure Resource Providers**: Microsoft.Compute, Microsoft.Network, Microsoft.Storage, Microsoft.ManagedIdentity
-- **Chocolatey**: https://community.chocolatey.org/packages - package repository for application installation
+- **Winget**: Microsoft's native package manager (pre-installed on Windows 11) - for common applications
+- **Chocolatey**: https://community.chocolatey.org/packages - package repository for Microsoft 365 Apps installation
 - **Windows Update**: PSWindowsUpdate module for automated patching
 - **Microsoft Intune**: For creating Windows 365 provisioning policies with custom images
 - **Azure Marketplace**: Windows 11 Enterprise CPC images from MicrosoftWindowsDesktop publisher

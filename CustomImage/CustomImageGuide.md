@@ -36,8 +36,8 @@ The solution uses **`Deploy-W365CustomImage.ps1`** which fully automates the ent
    - Attaches Public IP and NIC
 
 3. **VM Customization** (via Azure Run Command)
-   - Installs Chocolatey package manager
-   - Installs applications: Visual Studio Code, 7-Zip, Google Chrome, Adobe Acrobat Reader
+   - Installs applications via Winget: Visual Studio Code, 7-Zip, Google Chrome, Adobe Acrobat Reader
+   - Installs Microsoft 365 Apps via Chocolatey (Word, Excel, PowerPoint, Outlook, OneNote, Teams)
    - Configures Windows settings (timezone, Explorer options, disables tips)
    - Runs Windows Update (all non-preview updates)
    - Optimizes and cleans up (disable telemetry, clean temp files, clear event logs)
@@ -177,7 +177,8 @@ Get-AzImage -ResourceGroupName 'rg-w365-customimage-student5'
 ### Step 3: Provision Cloud PCs
 
 When users in the assigned group are licensed, their Cloud PCs will be provisioned using your custom image with:
-- ✅ Pre-installed applications (VSCode, 7-Zip, Chrome, Adobe Reader)
+- ✅ Pre-installed applications via Winget (VSCode, 7-Zip, Chrome, Adobe Reader)
+- ✅ Microsoft 365 Apps (Word, Excel, PowerPoint, Outlook, OneNote, Teams)
 - ✅ Configured Windows settings
 - ✅ Latest Windows Updates
 - ✅ Optimizations applied
@@ -192,15 +193,15 @@ Edit `Invoke-W365ImageCustomization.ps1`:
 
 ```powershell
 $packages = @(
-    @{ Name = 'vscode'; DisplayName = 'Visual Studio Code' }
-    @{ Name = '7zip'; DisplayName = '7-Zip' }
-    @{ Name = 'googlechrome'; DisplayName = 'Google Chrome' }
-    @{ Name = 'adobereader'; DisplayName = 'Adobe Acrobat Reader' }
-    @{ Name = 'notepadplusplus'; DisplayName = 'Notepad++' }  # Add new
+    @{ Id = '7zip.7zip'; DisplayName = '7-Zip' }
+    @{ Id = 'Microsoft.VisualStudioCode'; DisplayName = 'Visual Studio Code' }
+    @{ Id = 'Google.Chrome'; DisplayName = 'Google Chrome' }
+    @{ Id = 'Adobe.Acrobat.Reader.64-bit'; DisplayName = 'Adobe Acrobat Reader' }
+    @{ Id = 'Notepad++.Notepad++'; DisplayName = 'Notepad++' }  # Add new
 )
 ```
 
-Find Chocolatey package names at: https://community.chocolatey.org/packages
+Find Winget package IDs using: `winget search <app-name>` or https://winget.run/
 
 ### Change Base Image
 
@@ -232,9 +233,10 @@ hardwareProfile: {
 ### Common Issues
 
 1. **Role assignment propagation**: Wait 60 seconds if deployment fails immediately
-2. **Chocolatey package failures**: Verify package names at https://community.chocolatey.org/packages
-3. **Sysprep failures**: Check customization completed successfully before sysprep
-4. **VM doesn't stop**: Sysprep may have failed, check VM logs
+2. **Winget package failures**: Verify package IDs using `winget search <app-name>`
+3. **Chocolatey/M365 package failures**: Verify package names at https://community.chocolatey.org/packages
+4. **Sysprep failures**: Check customization completed successfully before sysprep
+5. **VM doesn't stop**: Sysprep may have failed, check VM logs
 
 ### View Logs
 
