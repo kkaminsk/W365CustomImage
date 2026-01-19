@@ -53,6 +53,52 @@ try {
     # Stage 1: Install Applications via Winget
     Write-CustomLog "Stage 1: Installing applications via Winget..." -Level Info
 
+    # Find winget executable - required for SYSTEM context (Invoke-AzVMRunCommand)
+    $wingetPath = $null
+    $wingetSearchPaths = @(
+        "${env:ProgramFiles}\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe",
+        "${env:LOCALAPPDATA}\Microsoft\WindowsApps\winget.exe",
+        "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe"
+    )
+    
+    foreach ($searchPath in $wingetSearchPaths) {
+        $found = Get-Item -Path $searchPath -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) {
+            $wingetPath = $found.FullName
+            break
+        }
+    }
+    
+    if (-not $wingetPath) {
+        Write-CustomLog "Winget not found. Attempting to install/repair Windows Package Manager..." -Level Warning
+        
+        # Try to register the AppX package for SYSTEM context
+        try {
+            Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 5
+            
+            # Search again
+            foreach ($searchPath in $wingetSearchPaths) {
+                $found = Get-Item -Path $searchPath -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($found) {
+                    $wingetPath = $found.FullName
+                    break
+                }
+            }
+        }
+        catch {
+            Write-CustomLog "Failed to register AppInstaller: $($_.Exception.Message)" -Level Warning
+        }
+    }
+    
+    if ($wingetPath) {
+        Write-CustomLog "Found winget at: $wingetPath" -Level Info
+    }
+    else {
+        Write-CustomLog "Winget not available - skipping winget installations" -Level Error
+        Write-CustomLog "Packages will need to be installed manually or via alternative method" -Level Warning
+    }
+
     $packages = @(
         @{ Id = '7zip.7zip'; DisplayName = '7-Zip' }
         @{ Id = 'Microsoft.VisualStudioCode'; DisplayName = 'Visual Studio Code' }
@@ -60,20 +106,39 @@ try {
         @{ Id = 'Adobe.Acrobat.Reader.64-bit'; DisplayName = 'Adobe Acrobat Reader' }
     )
 
-    foreach ($package in $packages) {
-        try {
-            Write-CustomLog "Installing $($package.DisplayName)..." -Level Info
-            $result = winget install $package.Id --silent --accept-package-agreements --accept-source-agreements 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Write-CustomLog "$($package.DisplayName) installed successfully" -Level Success
+    if ($wingetPath) {
+        foreach ($package in $packages) {
+            try {
+                Write-CustomLog "Installing $($package.DisplayName)..." -Level Info
+                
+                # Use full path to winget and --scope machine for SYSTEM context
+                $processArgs = @(
+                    "install"
+                    $package.Id
+                    "--silent"
+                    "--accept-package-agreements"
+                    "--accept-source-agreements"
+                    "--scope", "machine"
+                    "--disable-interactivity"
+                )
+                
+                $process = Start-Process -FilePath $wingetPath -ArgumentList $processArgs -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\winget_stdout.txt" -RedirectStandardError "$env:TEMP\winget_stderr.txt"
+                
+                $stdout = Get-Content "$env:TEMP\winget_stdout.txt" -Raw -ErrorAction SilentlyContinue
+                $stderr = Get-Content "$env:TEMP\winget_stderr.txt" -Raw -ErrorAction SilentlyContinue
+                
+                if ($process.ExitCode -eq 0) {
+                    Write-CustomLog "$($package.DisplayName) installed successfully" -Level Success
+                }
+                else {
+                    Write-CustomLog "$($package.DisplayName) installation returned exit code $($process.ExitCode)" -Level Warning
+                    if ($stdout) { Write-CustomLog "Output: $stdout" -Level Warning }
+                    if ($stderr) { Write-CustomLog "Error: $stderr" -Level Warning }
+                }
             }
-            else {
-                Write-CustomLog "$($package.DisplayName) installation returned exit code $LASTEXITCODE" -Level Warning
-                Write-CustomLog "Output: $result" -Level Warning
+            catch {
+                Write-CustomLog "Failed to install $($package.DisplayName): $($_.Exception.Message)" -Level Error
             }
-        }
-        catch {
-            Write-CustomLog "Failed to install $($package.DisplayName): $($_.Exception.Message)" -Level Error
         }
     }
 

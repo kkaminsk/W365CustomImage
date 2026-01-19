@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(openspec list:*)",
+      "Bash(openspec validate:*)",
+      "Skill(openspec:apply)",
+      "Bash(npx openspec:*)",
+      "Bash(git push:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(powershell -Command \"& { $errors = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile\\(''C:\\\\Temp\\\\tsscat\\\\W365CustomImage\\\\CustomImage\\\\Deploy-W365CustomImage.ps1'', [ref]$null, [ref]$errors\\); if \\($errors.Count -gt 0\\) { $errors | ForEach-Object { Write-Host \\(''Line '' + $_.Extent.StartLineNumber + '': '' + $_.Message\\) } } else { Write-Host ''No syntax errors found'' } }\")",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"& ''C:\\\\Temp\\\\tsscat\\\\W365CustomImage\\\\CustomImage\\\\Deploy-W365CustomImage.ps1''\")",
+      "Bash(git -C \"C:\\\\Temp\\\\tsscat\\\\W365CustomImage\" log --oneline -15)"
+    ]
+  }
+}
