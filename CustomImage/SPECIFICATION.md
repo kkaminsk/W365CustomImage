@@ -1,7 +1,7 @@
 # Windows 365 Custom Image Automation - Application Specification
 
 ## Overview
-Fully automated solution for creating Windows 365 custom images using Azure Managed Images (Gen 2). Deploys VM, customizes with Winget and Chocolatey, executes sysprep, and captures as managed image.
+Fully automated solution for creating Windows 365 custom images using Azure Managed Images (Gen 2). Deploys VM, customizes with Chocolatey, executes sysprep, and captures as managed image.
 
 ## Solution Components
 
@@ -45,18 +45,19 @@ Fully automated solution for creating Windows 365 custom images using Azure Mana
 **Source Image**: Windows 11 25H2 Enterprise Cloud PC Optimized (single-session)
 
 **Customizations** (executed in stages):
-1. **Stage 1 - Application Installation** (via Winget):
-   - Visual Studio Code
+1. **Stage 1 - Chocolatey Installation**: Install Chocolatey package manager
+2. **Stage 2 - Application Installation** (via Chocolatey):
    - 7-Zip
+   - Visual Studio Code
    - Google Chrome
    - Adobe Acrobat Reader
-2. **Stage 2 - Microsoft 365 Apps** (via Chocolatey):
+3. **Stage 3 - Microsoft 365 Apps** (via Chocolatey):
    - Word, Excel, PowerPoint, Outlook, OneNote, Teams
    - 64-bit, O365ProPlusRetail, Current Channel
    - Excludes: Publisher, Groove (OneDrive sync), Access
-3. **Stage 3 - Windows Settings**: Timezone (Eastern), Explorer options, disable tips
-4. **Stage 4 - Windows Updates**: Install all non-preview updates via PSWindowsUpdate
-5. **Stage 5 - Optimization**: Disable telemetry, clean temp files, clear event logs
+4. **Stage 4 - Windows Settings**: Timezone (Eastern), Explorer options, disable tips
+5. **Stage 5 - Windows Updates**: Install all non-preview updates via PSWindowsUpdate
+6. **Stage 6 - Optimization**: Disable telemetry, clean temp files, clear event logs
 
 **Logging**: All operations logged to `C:\Windows\Temp\w365-customization.log`
 
@@ -102,7 +103,8 @@ Fully automated solution for creating Windows 365 custom images using Azure Mana
 
 6. Execute Customization Script (Azure Run Command)
    ├─ Inject Invoke-W365ImageCustomization.ps1
-   ├─ Install applications via Winget
+   ├─ Install Chocolatey package manager
+   ├─ Install applications via Chocolatey
    ├─ Install Microsoft 365 Apps via Chocolatey
    ├─ Configure Windows settings
    ├─ Run Windows Update
@@ -188,15 +190,15 @@ Get-AzImage -ResourceGroupName 'rg-w365-customimage' -ImageName 'w365-custom-ima
 Edit `Invoke-W365ImageCustomization.ps1`, find $packages array:
 ```powershell
 $packages = @(
-    @{ Id = '7zip.7zip'; DisplayName = '7-Zip' }
-    @{ Id = 'Microsoft.VisualStudioCode'; DisplayName = 'Visual Studio Code' }
-    @{ Id = 'Google.Chrome'; DisplayName = 'Google Chrome' }
-    @{ Id = 'Adobe.Acrobat.Reader.64-bit'; DisplayName = 'Adobe Acrobat Reader' }
-    @{ Id = 'Notepad++.Notepad++'; DisplayName = 'Notepad++' }  # Add new
+    @{ Id = '7zip'; DisplayName = '7-Zip' }
+    @{ Id = 'vscode'; DisplayName = 'Visual Studio Code' }
+    @{ Id = 'googlechrome'; DisplayName = 'Google Chrome' }
+    @{ Id = 'adobereader'; DisplayName = 'Adobe Acrobat Reader' }
+    @{ Id = 'notepadplusplus'; DisplayName = 'Notepad++' }  # Add new
 )
 ```
 
-Find package IDs using: `winget search <app-name>`
+Find package IDs using: `choco search <app-name>`
 
 ### Change Base Image
 Update `customimage.bicep` storageProfile section:
@@ -290,7 +292,7 @@ Each run creates a new timestamped managed image with current Windows Updates.
 
 ### Common Issues
 1. **Role assignment propagation**: Wait 60 seconds if deployment fails immediately
-2. **Winget package failures**: Verify package IDs using `winget search <app-name>`
+2. **Chocolatey package failures**: Verify package IDs using `choco search <app-name>`
 3. **Sysprep failures**: Check customization completed successfully before sysprep
 4. **Network timeouts**: Check NSG rules and internet connectivity for VM
 5. **VM doesn't stop**: Sysprep may have failed, check logs on VM
@@ -313,6 +315,7 @@ Get-Content "$env:USERPROFILE\Documents\W365Customimage-*.log" | Select-Object -
 ```
 
 ## Version History
+- **v2.2** (2026-02-01): Migrated all app installation to Chocolatey (Winget has SYSTEM context issues)
 - **v2.1** (2026-01-18): Replaced Chocolatey with Winget for app installation (7-Zip, VSCode, Chrome, Adobe Reader)
 - **v2.0** (2025-10-16): Migrated to managed image approach with Chocolatey
 - **v1.0** (2025-10-14): Initial release with Azure VM Image Builder

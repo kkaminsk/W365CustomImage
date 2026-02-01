@@ -4,11 +4,13 @@
 
 .DESCRIPTION
     This script runs on the build VM to:
-    - Install applications via Winget (VSCode, 7-Zip, Chrome, Adobe Reader)
-    - Install Microsoft 365 Apps via Chocolatey (Word, Excel, PowerPoint, Outlook, OneNote, Teams)
+    - Install applications via Chocolatey (VSCode, 7-Zip, Chrome, Adobe Reader, Microsoft 365 Apps)
     - Configure Windows settings (timezone, Explorer, disable tips)
     - Run Windows Update
     - Optimize system (disable telemetry, clean temp files)
+
+    Chocolatey is used for all package installations because it runs reliably in SYSTEM
+    context (Azure Run Command), unlike Winget which has security context limitations.
 
     All operations are logged.
 
@@ -50,104 +52,10 @@ try {
     Write-CustomLog "=== Windows 365 Image Customization Started ===" -Level Info
     Write-CustomLog "Log file: $logPath" -Level Info
     
-    # Stage 1: Install Applications via Winget
-    Write-CustomLog "Stage 1: Installing applications via Winget..." -Level Info
-
-    # Find winget executable - required for SYSTEM context (Invoke-AzVMRunCommand)
-    $wingetPath = $null
-    $wingetSearchPaths = @(
-        "${env:ProgramFiles}\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe",
-        "${env:LOCALAPPDATA}\Microsoft\WindowsApps\winget.exe",
-        "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe"
-    )
-    
-    foreach ($searchPath in $wingetSearchPaths) {
-        $found = Get-Item -Path $searchPath -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($found) {
-            $wingetPath = $found.FullName
-            break
-        }
-    }
-    
-    if (-not $wingetPath) {
-        Write-CustomLog "Winget not found. Attempting to install/repair Windows Package Manager..." -Level Warning
-        
-        # Try to register the AppX package for SYSTEM context
-        try {
-            Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 5
-            
-            # Search again
-            foreach ($searchPath in $wingetSearchPaths) {
-                $found = Get-Item -Path $searchPath -ErrorAction SilentlyContinue | Select-Object -First 1
-                if ($found) {
-                    $wingetPath = $found.FullName
-                    break
-                }
-            }
-        }
-        catch {
-            Write-CustomLog "Failed to register AppInstaller: $($_.Exception.Message)" -Level Warning
-        }
-    }
-    
-    if ($wingetPath) {
-        Write-CustomLog "Found winget at: $wingetPath" -Level Info
-    }
-    else {
-        Write-CustomLog "Winget not available - skipping winget installations" -Level Error
-        Write-CustomLog "Packages will need to be installed manually or via alternative method" -Level Warning
-    }
-
-    $packages = @(
-        @{ Id = '7zip.7zip'; DisplayName = '7-Zip' }
-        @{ Id = 'Microsoft.VisualStudioCode'; DisplayName = 'Visual Studio Code' }
-        @{ Id = 'Google.Chrome'; DisplayName = 'Google Chrome' }
-        @{ Id = 'Adobe.Acrobat.Reader.64-bit'; DisplayName = 'Adobe Acrobat Reader' }
-    )
-
-    if ($wingetPath) {
-        foreach ($package in $packages) {
-            try {
-                Write-CustomLog "Installing $($package.DisplayName)..." -Level Info
-                
-                # Use full path to winget and --scope machine for SYSTEM context
-                $processArgs = @(
-                    "install"
-                    $package.Id
-                    "--silent"
-                    "--accept-package-agreements"
-                    "--accept-source-agreements"
-                    "--scope", "machine"
-                    "--disable-interactivity"
-                )
-                
-                $process = Start-Process -FilePath $wingetPath -ArgumentList $processArgs -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\winget_stdout.txt" -RedirectStandardError "$env:TEMP\winget_stderr.txt"
-                
-                $stdout = Get-Content "$env:TEMP\winget_stdout.txt" -Raw -ErrorAction SilentlyContinue
-                $stderr = Get-Content "$env:TEMP\winget_stderr.txt" -Raw -ErrorAction SilentlyContinue
-                
-                if ($process.ExitCode -eq 0) {
-                    Write-CustomLog "$($package.DisplayName) installed successfully" -Level Success
-                }
-                else {
-                    Write-CustomLog "$($package.DisplayName) installation returned exit code $($process.ExitCode)" -Level Warning
-                    if ($stdout) { Write-CustomLog "Output: $stdout" -Level Warning }
-                    if ($stderr) { Write-CustomLog "Error: $stderr" -Level Warning }
-                }
-            }
-            catch {
-                Write-CustomLog "Failed to install $($package.DisplayName): $($_.Exception.Message)" -Level Error
-            }
-        }
-    }
-
-    # Stage 2: Install Microsoft 365 Apps via Chocolatey
-    Write-CustomLog "Stage 2: Installing Microsoft 365 Apps..." -Level Info
+    # Stage 1: Install Chocolatey Package Manager
+    Write-CustomLog "Stage 1: Installing Chocolatey package manager..." -Level Info
 
     try {
-        # Install Chocolatey package manager
-        Write-CustomLog "Installing Chocolatey package manager..." -Level Info
         if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
             Set-ExecutionPolicy Bypass -Scope Process -Force
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
@@ -161,8 +69,46 @@ try {
         else {
             Write-CustomLog "Chocolatey already installed" -Level Info
         }
+    }
+    catch {
+        Write-CustomLog "Failed to install Chocolatey: $($_.Exception.Message)" -Level Error
+        Write-CustomLog "Application installations will fail without Chocolatey" -Level Error
+        throw
+    }
 
-        # Install Microsoft 365 Apps using Office Deployment Tool via Chocolatey
+    # Stage 2: Install Applications via Chocolatey
+    Write-CustomLog "Stage 2: Installing applications via Chocolatey..." -Level Info
+
+    $packages = @(
+        @{ Id = '7zip'; DisplayName = '7-Zip' }
+        @{ Id = 'vscode'; DisplayName = 'Visual Studio Code' }
+        @{ Id = 'googlechrome'; DisplayName = 'Google Chrome' }
+        @{ Id = 'adobereader'; DisplayName = 'Adobe Acrobat Reader' }
+    )
+
+    foreach ($package in $packages) {
+        try {
+            Write-CustomLog "Installing $($package.DisplayName)..." -Level Info
+
+            $chocoResult = choco install $package.Id -y 2>&1
+
+            if ($LASTEXITCODE -eq 0) {
+                Write-CustomLog "$($package.DisplayName) installed successfully" -Level Success
+            }
+            else {
+                Write-CustomLog "$($package.DisplayName) installation returned exit code $LASTEXITCODE" -Level Warning
+                Write-CustomLog "Output: $chocoResult" -Level Warning
+            }
+        }
+        catch {
+            Write-CustomLog "Failed to install $($package.DisplayName): $($_.Exception.Message)" -Level Error
+        }
+    }
+
+    # Stage 3: Install Microsoft 365 Apps via Chocolatey
+    Write-CustomLog "Stage 3: Installing Microsoft 365 Apps..." -Level Info
+
+    try {
         Write-CustomLog "Installing Microsoft 365 Apps (64-bit, O365ProPlusRetail, Current Channel)..." -Level Info
         Write-CustomLog "Excluding: Publisher, Groove (OneDrive sync), Access" -Level Info
 
@@ -181,8 +127,8 @@ try {
         Write-CustomLog "Continuing with remaining customizations..." -Level Warning
     }
 
-    # Stage 3: Configure Windows Settings
-    Write-CustomLog "Stage 3: Configuring Windows settings..." -Level Info
+    # Stage 4: Configure Windows Settings
+    Write-CustomLog "Stage 4: Configuring Windows settings..." -Level Info
     
     try {
         # Set timezone to Eastern
@@ -221,8 +167,8 @@ try {
         Write-CustomLog "Failed to disable Windows tips: $($_.Exception.Message)" -Level Error
     }
     
-    # Stage 4: Run Windows Update
-    Write-CustomLog "Stage 4: Running Windows Update..." -Level Info
+    # Stage 5: Run Windows Update
+    Write-CustomLog "Stage 5: Running Windows Update..." -Level Info
     try {
         # Install PSWindowsUpdate module if not present
         if (-not (Get-Module -ListAvailable -Name PSWindowsUpdate)) {
@@ -242,8 +188,8 @@ try {
         Write-CustomLog "Continuing with remaining customizations..." -Level Warning
     }
     
-    # Stage 5: Optimization and Cleanup
-    Write-CustomLog "Stage 5: Optimizing and cleaning up..." -Level Info
+    # Stage 6: Optimization and Cleanup
+    Write-CustomLog "Stage 6: Optimizing and cleaning up..." -Level Info
     
     try {
         # Disable telemetry
