@@ -12,7 +12,11 @@
       "Bash(powershell -Command \"& { $errors = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile\\(''C:\\\\Temp\\\\tsscat\\\\W365CustomImage\\\\CustomImage\\\\Deploy-W365CustomImage.ps1'', [ref]$null, [ref]$errors\\); if \\($errors.Count -gt 0\\) { $errors | ForEach-Object { Write-Host \\(''Line '' + $_.Extent.StartLineNumber + '': '' + $_.Message\\) } } else { Write-Host ''No syntax errors found'' } }\")",
       "Bash(powershell -Command:*)",
       "Bash(powershell -ExecutionPolicy Bypass -Command \"& ''C:\\\\Temp\\\\tsscat\\\\W365CustomImage\\\\CustomImage\\\\Deploy-W365CustomImage.ps1''\")",
-      "Bash(git -C \"C:\\\\Temp\\\\tsscat\\\\W365CustomImage\" log --oneline -15)"
+      "Bash(git -C \"C:\\\\Temp\\\\tsscat\\\\W365CustomImage\" log --oneline -15)",
+      "Bash(openspec show:*)",
+      "Bash(openspec archive update-winget-installation:*)",
+      "Bash(az login:*)",
+      "Bash(pwsh:*)"
     ]
   }
 }
